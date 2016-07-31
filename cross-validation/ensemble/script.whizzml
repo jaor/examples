@@ -65,7 +65,8 @@
                                            dataset-name
                                            model-options
                                            evaluation-options))
-     (create-and-wait-evaluation {"evaluations" evaluations}))))
+     ;; (create-and-wait-evaluation {"evaluations" evaluations})
+    (get ((get-in (fetch (create-and-wait-evaluation {"evaluations" evaluations})) ["result" "model" "per_class_statistics"]) 1) "recall"))))
 
 ;; check-resource-id
 ;;
