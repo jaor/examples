@@ -5,8 +5,8 @@
                      "      pred-label (if (>= (f {{pred-id}}) {{th}}) 1 0))"
                      "  (list (if (= label pred-label 1) 1 0)"
                      "        (if (= label pred-label 0) 1 0)"
-                     "        (if (= 0 label) 1 0)"
-                     "        (if (= 1 label) 1 0)))")
+                     "        (if (and (= 0 label) (= 1 pred-label)) 1 0)"
+                     "        (if (and (= 1 label) (= 0 pred-label)) 1 0)))")
         names ["tp" "tn" "fp" "fn"]
         params {"new_fields" [{"names" names "fields" fl}] "all_fields" false}
         id (wait (create-dataset ds-id params))
