@@ -46,7 +46,8 @@
      "precision" prec
      "recall" rec
      "f-measure" (f-measure prec rec)
-     "phi" (phi tp fn fp fn)}))
+     "phi" (phi tp fn fp fn)
+     "threshold" th}))
 
 (define (evaluate-thresholds dataset-id model-id label from to step)
   (when (< to from)
