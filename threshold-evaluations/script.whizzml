@@ -28,9 +28,9 @@
           (recur (+ th step)
                  (append evs (evaluate-threshold ds-id pred-id label th)))))))
 
-(define result (evaluate-thresholds dataset
-                                    model
-                                    label-field
-                                    threshold-begin
-                                    threshold-end
-                                    threshold-step))
+(define evaluations (evaluate-thresholds dataset
+                                         model
+                                         label-field
+                                         threshold-begin
+                                         threshold-end
+                                         threshold-step))
