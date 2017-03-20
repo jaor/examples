@@ -1,5 +1,30 @@
 (define (get-sum fs f) ((find-field fs f) ["summary" "sum"]))
 
+(define (auc tp fn fp tn)
+  (let (tp+fn (+ tp fn)
+        tpr (if (positive? tp+fn) (/ tp tp+fn) 1)
+        fp+tn (+ fp tn)
+        fpr (if (positive? fp+tn) (/ fp fp+tn) 1)
+        len-a (sqrt 2)
+        len-b (sqrt (+ (* tpr tpr) (* fpr fpr)))
+        len-c (sqrt (+ (* (- 1 tpr) (- 1 tpr)) (* (- 1 fpr) (- 1 fpr))))
+        half-p (/ (+ len-a len-b len-c) 2)
+        area (sqrt (* half-p
+                      (- half-p len-a)
+                      (- half-p len-b)
+                      (- half-p len-c))))
+    (cond (= tpr fpr) 0.5
+          (> tpr fpr) (+ 0.5 area)
+          (- 0.5 area))))
+
+(define (accuracy tp fn fp tn) (/ (+ tp tn) (+ tp tn fp fn)))
+(define (precision tp fp) (/ tp (+ tp fp)))
+(define (recall tp fn) (/ tp (+ tp fn)))
+(define (f-measure p r) (/ (* 2 p r) (+ p r)))
+(define (phi tp fn fp tn)
+  (/ (+ (* tp tn) (* fp fn))
+     (sqrt (* (+ tp fp) (+ tp fn) (+ tn fp) (+ tn fn)))))
+
 (define (evaluate-threshold ds-id pred-id label-id th)
   (let (fl (flatline "(let (label (f {{label-id}})"
                      "      pred-label (if (>= (f {{pred-id}}) {{th}}) 1 0))"
@@ -7,13 +32,21 @@
                      "        (if (= label pred-label 0) 1 0)"
                      "        (if (and (= 0 label) (= 1 pred-label)) 1 0)"
                      "        (if (and (= 1 label) (= 0 pred-label)) 1 0)))")
-        names ["tp" "tn" "fp" "fn"]
+        names ["tp" "fn" "fp" "tn"]
         params {"new_fields" [{"names" names "fields" fl}] "all_fields" false}
         id (wait (create-dataset ds-id params))
         fds (resource-fields id)
-        res (reduce (lambda (r f) (assoc r f (get-sum fds f))) {} names))
+        [tp fn fp tn] (map (lambda (f) (get-sum fds f)) names)
+        prec (precision tp fp)
+        rec (recall tp fn))
     (delete id)
-    (assoc res "threshold" th)))
+    {"confusion-matrix" [[tp fn] [fp tn]]
+     "auc" (auc tp fn fp tn)
+     "accuracy" (accuracy tp fn fp tn)
+     "precision" prec
+     "recall" rec
+     "f-measure" (f-measure prec rec)
+     "phi" (phi tp fn fp fn)}))
 
 (define (evaluate-thresholds dataset-id model-id label from to step)
   (when (< to from)
@@ -22,10 +55,8 @@
     (raise "Invalid threshold step: must be positive"))
   (let (bp-id (create-batchprediction model-id dataset-id
                                       {"output_dataset" true "all_fields" true})
-        bp (fetch (wait bp-id))
-        ds-id (bp "output_dataset_resource")
-        ds (fetch (wait ds-id))
-        pred-id (ds ["objective_field" "id"]))
+        ds-id ((fetch (wait bp-id)) "output_dataset_resource")
+        pred-id ((fetch (wait ds-id)) ["objective_field" "id"]))
     (loop (th from evs [])
       (if (> th to)
           evs
