@@ -39,7 +39,7 @@
         [tp fn fp tn] (map (lambda (f) (get-sum fds f)) names)
         prec (precision tp fp)
         rec (recall tp fn))
-    (delete id)
+    (when delete-datasets? (delete id))
     {"confusion-matrix" [[tp fn] [fp tn]]
      "auc" (auc tp fn fp tn)
      "accuracy" (accuracy tp fn fp tn)
@@ -54,15 +54,17 @@
     (raise "Invalid threshold bounds (end greater than begin)"))
   (when (not (positive? step))
     (raise "Invalid threshold step: must be positive"))
-  (let (bp-id (create-batchprediction model-id dataset-id
-                                      {"output_dataset" true "all_fields" true})
-        ds-id ((fetch (wait bp-id)) "output_dataset_resource")
-        pred-id ((fetch (wait ds-id)) ["objective_field" "id"]))
+  (let (p-label (str "predicted_" label)
+        bp-id (create-batchprediction model-id dataset-id
+                                      {"output_dataset" true
+                                       "all_fields" true
+                                       "prediction_name" p-label})
+        ds-id ((fetch (wait bp-id)) "output_dataset_resource"))
     (loop (th from evs [])
       (if (> th to)
           evs
           (recur (+ th step)
-                 (append evs (evaluate-threshold ds-id pred-id label th)))))))
+                 (append evs (evaluate-threshold ds-id p-label label th)))))))
 
 (define evaluations (evaluate-thresholds dataset
                                          model

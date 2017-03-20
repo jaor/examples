@@ -37,6 +37,12 @@
       "description": "Step of the threshold range",
       "name": "threshold-step",
       "type": "number"
+    },
+    {
+      "name": "delete-datasets?",
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to delete intermediate per-threshold datasets"
     }],
   "outputs": [
     {
