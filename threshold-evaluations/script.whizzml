@@ -2,8 +2,7 @@
 
 (define (evaluate-threshold ds-id pred-id label-id th)
   (let (fl (flatline "(let (label (f {{label-id}})"
-                     "      pred (f {{pred-id}})"
-                     "      pred-label (if (>= p {{th}}) 1 0))"
+                     "      pred-label (if (>= (f {{pred-id}}) {{th}}) 1 0))"
                      "  (list (if (= label pred-label 1) 1 0)"
                      "        (if (= label pred-label 0) 1 0)"
                      "        (if (= 0 label) 1 0)"
@@ -16,19 +15,18 @@
     (delete id)
     (assoc res "threshold" th)))
 
-(define (evaluate-thresholds dataset-id model-id label-field from to step)
-  (let (bp-id (create-batchprediction model-id dataset-id)
+(define (evaluate-thresholds dataset-id model-id label from to step)
+  (let (bp-id (create-batchprediction model-id dataset-id
+                                      {"output_dataset" true "all_fields" true})
         bp (fetch (wait bp-id))
         ds-id (bp "output_dataset_resource")
         ds (fetch (wait ds-id))
-        label-id (or (find-field (resource-fields ds) label-field)
-                     (raise "Label field not found in dataset"))
         pred-id (ds ["objective_field" "id"]))
     (loop (th from evs [])
       (if (> th to)
           evs
           (recur (+ th step)
-                 (append evs (evaluate-threshold ds-id pred-id label-id th)))))))
+                 (append evs (evaluate-threshold ds-id pred-id label th)))))))
 
 (define result (evaluate-thresholds dataset
                                     model
