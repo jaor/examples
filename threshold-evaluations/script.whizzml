@@ -17,13 +17,21 @@
           (> tpr fpr) (+ 0.5 area)
           (- 0.5 area))))
 
-(define (accuracy tp fn fp tn) (/ (+ tp tn) (+ tp tn fp fn)))
-(define (precision tp fp) (/ tp (+ tp fp)))
-(define (recall tp fn) (/ tp (+ tp fn)))
-(define (f-measure p r) (/ (* 2 p r) (+ p r)))
+(define (accuracy tp fn fp tn)
+  (let (p (+ tp tn fp fn)) (if (zero? p) 0 (/ (+ tp tn) p))))
+
+(define (precision tp fp)
+  (let (p (+ tp fp)) (if (zero? p) 0 (/ tp p))))
+
+(define (recall tp fn)
+  (let (p (+ tp fn)) (if (zero? p) 0 (/ tp p))))
+
+(define (f-measure p r)
+  (let (q (+ p r)) (if (zero? q) 0 (/ (* 2 p r) (+ p r)))))
+
 (define (phi tp fn fp tn)
-  (/ (+ (* tp tn) (* fp fn))
-     (sqrt (* (+ tp fp) (+ tp fn) (+ tn fp) (+ tn fn)))))
+  (let (p (* (+ tp fp) (+ tp fn) (+ tn fp) (+ tn fn)))
+    (if (zero? p) 0 (/ (+ (* tp tn) (* fp fn)) (sqrt p)))))
 
 (define (evaluate-threshold ds-id pred-id label-id th)
   (let (fl (flatline "(let (label (f {{label-id}})"
