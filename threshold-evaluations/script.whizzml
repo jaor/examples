@@ -16,6 +16,10 @@
     (assoc res "threshold" th)))
 
 (define (evaluate-thresholds dataset-id model-id label from to step)
+  (when (< to from)
+    (raise "Invalid threshold bounds (end greater than begin)"))
+  (when (not (positive? step))
+    (raise "Invalid threshold step: must be positive"))
   (let (bp-id (create-batchprediction model-id dataset-id
                                       {"output_dataset" true "all_fields" true})
         bp (fetch (wait bp-id))
