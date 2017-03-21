@@ -30,8 +30,15 @@
   (let (q (+ p r)) (if (zero? q) 0 (/ (* 2 p r) (+ p r)))))
 
 (define (phi tp fn fp tn)
-  (let (p (* (+ tp fp) (+ tp fn) (+ tn fp) (+ tn fn)))
-    (if (zero? p) 0 (/ (+ (* tp tn) (* fp fn)) (sqrt p)))))
+  (let (tpn (* tp tn)
+        fpn (* fp fn))
+    (if (or (zero? tpn) (zero? fpn))
+        0
+        (let (ds [(sqrt (+ tp fp)) (sqrt (+ tp fn))
+                  (sqrt (+ tn fp)) (sqrt (+ tn fn))]
+              a (reduce / tpn ds)
+              b (reduce / fpn ds))
+          (+ a b)))))
 
 (define (evaluate-threshold ds-id pred-id label-id th)
   (let (fl (flatline "(let (label (f {{label-id}})"
