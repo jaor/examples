@@ -1,10 +1,14 @@
 (define (get-sum fs f) ((find-field fs f) ["summary" "sum"]))
 
+(define (tp-rate tp fn)
+  (let (tp+fn (+ tp fn)) (if (positive? tp+fn) (/ tp tp+fn) 1)))
+
+(define (fp-rate fp tn)
+  (let (fp+tn (+ fp tn)) (if (positive? fp+tn) (/ fp fp+tn) 1)))
+
 (define (auc tp fn fp tn)
-  (let (tp+fn (+ tp fn)
-        tpr (if (positive? tp+fn) (/ tp tp+fn) 1)
-        fp+tn (+ fp tn)
-        fpr (if (positive? fp+tn) (/ fp fp+tn) 1)
+  (let (tpr (tp-rate tp fn)
+        fpr (fp-rate fp tn)
         len-a (sqrt 2)
         len-b (sqrt (+ (* tpr tpr) (* fpr fpr)))
         len-c (sqrt (+ (* (- 1 tpr) (- 1 tpr)) (* (- 1 fpr) (- 1 fpr))))
@@ -44,25 +48,28 @@
   (let (fl (flatline "(let (label (f {{label-id}})"
                      "      pred-label (if (>= (f {{pred-id}}) {{th}}) 1 0))"
                      "  (list (if (= label pred-label 1) 1 0)"
-                     "        (if (= label pred-label 0) 1 0)"
+                     "        (if (and (= 1 label) (= 0 pred-label)) 1 0)"
                      "        (if (and (= 0 label) (= 1 pred-label)) 1 0)"
-                     "        (if (and (= 1 label) (= 0 pred-label)) 1 0)))")
+                     "        (if (= label pred-label 0) 1 0)))")
         names ["tp" "fn" "fp" "tn"]
         params {"new_fields" [{"names" names "fields" fl}] "all_fields" false}
         id (wait (create-dataset ds-id params))
         fds (resource-fields id)
-        [tp fn fp tn] (map (lambda (f) (get-sum fds f)) names)
+        counts (map (lambda (f) (get-sum fds f)) names)
+        [tp fn fp tn] counts
         prec (precision tp fp)
         rec (recall tp fn))
     (when delete-datasets? (delete id))
-    {"confusion-matrix" [[tp fn] [fp tn]]
-     "auc" (auc tp fn fp tn)
-     "accuracy" (accuracy tp fn fp tn)
-     "precision" prec
-     "recall" rec
-     "f-measure" (f-measure prec rec)
-     "phi" (phi tp fn fp fn)
-     "threshold" th}))
+    (assoc (make-map names counts)
+           "tpr" (tp-rate tp fn)
+           "fpr" (fp-rate fp tn)
+           "auc" (auc tp fn fp tn)
+           "accuracy" (accuracy tp fn fp tn)
+           "precision" prec
+           "recall" rec
+           "f-measure" (f-measure prec rec)
+           "phi" (phi tp fn fp fn)
+           "threshold" th)))
 
 (define (evaluate-thresholds dataset-id model-id label from to step)
   (when (< to from)
@@ -78,7 +85,7 @@
     (loop (th from evs [])
       (if (> th to)
           evs
-          (recur (+ th step)
+          (recur (/ (round (* 1000 (+ th step))) 1000)
                  (append evs (evaluate-threshold ds-id p-label label th)))))))
 
 (define evaluations (evaluate-thresholds dataset
