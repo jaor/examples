@@ -135,6 +135,7 @@
      "accuracy" (accuracy tp fn fp tn)
      "precision" prec
      "recall" rec
+     "positive-class" pos
      "f-measure" (f-measure prec rec)
      "phi" (phi tp fn fp fn)
      "threshold" th}))
@@ -160,12 +161,24 @@
                                      "negative_class" neg})))
     (map (lambda (ev-id th) (fetch-ev pos ev-id th)) ev-ids thresholds)))
 
-(define evaluations (make-evaluations dataset
-                                      model
-                                      threshold-begin
-                                      threshold-end
-                                      threshold-step
-                                      positive-class
-                                      negative-class))
+
+(define positive-evaluations (make-evaluations dataset
+                                               model
+                                               threshold-begin
+                                               threshold-end
+                                               threshold-step
+                                               positive-class
+                                               negative-class))
+
+
+(define negative-evaluations (make-evaluations dataset
+                                               model
+                                               threshold-begin
+                                               threshold-end
+                                               threshold-step
+                                               negative-class
+                                               positive-class))
+
+(define evaluations (concat positive-evaluations negative-evaluations))
 
 (define total-auc (min (convex-hull-area (evaluation-points evaluations)) 1.0))
