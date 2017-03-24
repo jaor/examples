@@ -1,0 +1,60 @@
+{
+  "name": "Threshold evaluations for ensembles",
+  "description": "Evaluations for 0-1 objectives based on discretization & thresholds",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "imports": ["../evaluation-utils", "../discretization"],
+  "inputs": [
+    {
+      "description": "The test dataset with the label field",
+      "name": "dataset",
+      "type": "dataset-id"
+    },
+    {
+      "description": "The ensemble making predictions for a numeric between 0 and 1",
+      "name": "ensemble",
+      "type": "ensemble-id"
+    },
+    {
+      "default": "",
+      "description": "Name or identifier of the label field",
+      "name": "label-field",
+      "type": "string"
+    },
+    {
+      "default": 0.1,
+      "description": "Beginning of the threshold range",
+      "name": "threshold-begin",
+      "type": "number"
+    },
+    {
+      "default": 1.0,
+      "description": "End of the threshold range",
+      "name": "threshold-end",
+      "type": "number"
+    },
+    {
+      "default": 0.1,
+      "description": "Step of the threshold range",
+      "name": "threshold-step",
+      "type": "number"
+    },
+    {
+      "name": "delete-datasets?",
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to delete intermediate per-threshold datasets"
+    }],
+  "outputs": [
+    {
+      "name": "evaluations",
+      "type": "list",
+      "description": "A list of the resulting evaluation data"
+    },
+    {
+      "name": "total-auc",
+      "type": "mumber",
+      "description": "Integrated AUC over individual evaluations"
+    }
+  ]
+}

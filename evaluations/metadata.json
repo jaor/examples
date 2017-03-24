@@ -1,0 +1,14 @@
+{
+  "name": "Evaluations",
+  "description": "Library and scripts for multiple, threshold-based evaluations",
+  "kind": "package",
+  "components":[
+    "evaluation-utils",
+    "confidence-thresholds",
+    "confidence-model",
+    "confidence-ensemble",
+    "discretization",
+    "discretization-model",
+    "discretization-ensemble"
+  ]
+}

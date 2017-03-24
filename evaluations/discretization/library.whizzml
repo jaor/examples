@@ -1,0 +1,47 @@
+(define (evaluate-threshold ds-id pred-id label-id th del?)
+  (let (fl (flatline "(let (label (f {{label-id}})"
+                     "      pred-label (if (>= (f {{pred-id}}) {{th}}) 1 0))"
+                     "  (list (if (= label pred-label 1) 1 0)"
+                     "        (if (and (= 1 label) (= 0 pred-label)) 1 0)"
+                     "        (if (and (= 0 label) (= 1 pred-label)) 1 0)"
+                     "        (if (= label pred-label 0) 1 0)))")
+        names ["tp" "fn" "fp" "tn"]
+        params {"new_fields" [{"names" names "fields" fl}] "all_fields" false}
+        id (wait (create-dataset ds-id params))
+        fds (resource-fields id)
+        counts (map (lambda (f) (get-sum fds f)) names)
+        [tp fn fp tn] counts
+        prec (precision tp fp)
+        rec (recall tp fn))
+    (when del? (delete id))
+    (assoc (make-map names counts)
+           "tpr" (tp-rate tp fn)
+           "fpr" (fp-rate fp tn)
+           "auc" (auc tp fn fp tn)
+           "accuracy" (accuracy tp fn fp tn)
+           "precision" prec
+           "recall" rec
+           "f-measure" (f-measure prec rec)
+           "phi" (phi tp fn fp fn)
+           "threshold" th)))
+
+(define (evaluate-thresholds dataset-id model-id label from to step del?)
+  (when (< to from)
+    (raise "Invalid threshold bounds (end greater than begin)"))
+  (when (not (positive? step))
+    (raise "Invalid threshold step: must be positive"))
+  (let (p-label (str "predicted_" label)
+        bp-id (create-batchprediction model-id dataset-id
+                                      {"output_dataset" true
+                                       "all_fields" true
+                                       "prediction_name" p-label})
+        ds-id ((fetch (wait bp-id)) "output_dataset_resource"))
+    (loop (th from evs [])
+      (if (> th to)
+          evs
+          (recur (/ (round (* 1000 (+ th step))) 1000)
+                 (append evs
+                         (evaluate-threshold ds-id p-label label th del?)))))))
+
+(define (evaluation-points evs)
+  (map (lambda (e) [(e "fpr") (e "tpr")]) evs))

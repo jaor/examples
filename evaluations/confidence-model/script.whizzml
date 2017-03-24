@@ -1,0 +1,10 @@
+
+(define evaluations (make-evaluations dataset
+                                      model
+                                      threshold-begin
+                                      threshold-end
+                                      threshold-step
+                                      positive-class
+                                      negative-class))
+
+(define total-auc (min (convex-hull-area (evaluation-points evaluations)) 1.0))

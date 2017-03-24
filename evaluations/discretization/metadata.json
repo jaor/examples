@@ -1,0 +1,7 @@
+{
+  "name": "Threshold evaluations (library)",
+  "description": "Evaluations for 0-1 objectives based on discretization & thresholds",
+  "kind": "library",
+  "source_code": "library.whizzml",
+  "imports": ["../evaluation-utils"]
+}

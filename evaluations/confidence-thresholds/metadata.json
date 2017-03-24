@@ -1,0 +1,7 @@
+{
+  "name": "Confidence threshold evaluations (library)",
+  "description": "Evaluations based on thresholds, and total AUC computation",
+  "kind": "library",
+  "source_code": "library.whizzml",
+  "imports": ["../evaluation-utils"]
+}

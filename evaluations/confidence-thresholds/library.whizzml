@@ -1,0 +1,44 @@
+(define (fetch-ev pos ev-id th)
+  (let (ev ((fetch (wait ev-id)) "result")
+        [cl0 cl1] (ev "class_names")
+        cm (ev ["model" "confusion_matrix"])
+        [tp fn fp tn] (if (= cl0 pos)
+                          [(cm [0 0]) (cm [0 1]) (cm [1 0]) (cm [1 1])]
+                          [(cm [1 1]) (cm [1 0]) (cm [0 1])(cm [0 0])])
+        prec (precision tp fp)
+        rec (recall tp fn))
+    {"id" ev-id
+     "tp" tp
+     "fn" fn
+     "fp" fp
+     "tn" tn
+     "tpr" (tp-rate tp fn)
+     "fpr" (fp-rate fp tn)
+     "auc" (min (auc tp fn fp tn) 1.0)
+     "accuracy" (accuracy tp fn fp tn)
+     "precision" prec
+     "recall" rec
+     "f-measure" (f-measure prec rec)
+     "phi" (phi tp fn fp fn)
+     "threshold" th}))
+
+(define (evaluation-points evs)
+  (map (lambda (e) [(e "fpr") (e "tpr")]) evs))
+
+(define (make-evaluations dataset-id model-id from to step pos neg)
+  (when (< to from)
+    (raise "Invalid threshold bounds (end greater than begin)"))
+  (when (not (positive? step))
+    (raise "Invalid threshold step: must be positive"))
+  (let (thresholds (loop (th from ths [])
+                     (if (> th to)
+                         ths
+                         (recur (/ (round (* 1000 (+ th step))) 1000)
+                                (append ths th))))
+        ev-ids (for (th thresholds)
+                 (create-evaluation dataset-id
+                                    model-id
+                                    {"confidence_threshold" th
+                                     "positive_class" pos
+                                     "negative_class" neg})))
+    (map (lambda (ev-id th) (fetch-ev pos ev-id th)) ev-ids thresholds)))

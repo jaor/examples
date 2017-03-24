@@ -1,0 +1,10 @@
+
+(define evaluations (evaluate-thresholds dataset
+                                         ensemble
+                                         label-field
+                                         threshold-begin
+                                         threshold-end
+                                         threshold-step
+                                         delete-datasets?))
+
+(define total-auc (min 1.0 (convex-hull-area (evaluation-points evaluations))))

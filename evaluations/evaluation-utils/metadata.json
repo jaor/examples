@@ -1,0 +1,6 @@
+{
+  "name": "Evaluation utilities",
+  "description": "Functions to compute miscellaneous evaluation metrics",
+  "kind": "library",
+  "source_code": "library.whizzml"
+}

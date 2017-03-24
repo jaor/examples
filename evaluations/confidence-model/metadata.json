@@ -1,0 +1,59 @@
+{
+  "name": "Confidence threshold evaluations for models",
+  "description": "Evaluations based on thresholds, and total AUC computation",
+  "kind": "script",
+  "source_code": "script.whizzml",
+  "imports": ["../evaluation-utils", "../confidence-thresholds"],
+  "inputs": [
+    {
+      "description": "The test dataset",
+      "name": "dataset",
+      "type": "dataset-id"
+    },
+    {
+      "description": "The model to be evaluated",
+      "name": "model",
+      "type": "model-id"
+    },
+    {
+      "default": 0.1,
+      "description": "Beginning of the threshold range",
+      "name": "threshold-begin",
+      "type": "number"
+    },
+    {
+      "default": 1.0,
+      "description": "End of the threshold range",
+      "name": "threshold-end",
+      "type": "number"
+    },
+    {
+      "default": 0.1,
+      "description": "Step of the threshold range",
+      "name": "threshold-step",
+      "type": "number"
+    },
+    {
+      "name": "positive-class",
+      "default": "1",
+      "type": "string"
+    },
+    {
+      "name": "negative-class",
+      "default": "0",
+      "type": "string"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "evaluations",
+      "type": "list",
+      "description": "A list of the resulting evaluation data"
+    },
+    {
+      "name": "total-auc",
+      "type": "number",
+      "description": "Integrated AUC over individual evaluations"
+    }
+  ]
+}
