@@ -1,0 +1,171 @@
+(define (polar-angle p q)
+  (cond (= p q) 0
+        (zero? (- (p 0) (q 0))) (asin 1)
+        (atan (/ (- (q 1) (p 1)) (- (q 0) (p 0))))))
+
+(define (dist p q)
+  (sqrt (+ (square (- (p 0) (q 0))) (square (- (p 1) (q 1))))))
+
+(define (remove-dup-angles p0 ps)
+  (reduce (lambda (r p)
+            (if (= (p "angle") ((last r) "angle"))
+                (if (> (dist (p "point") p0)
+                       (dist ((last r) "point") p0))
+                    (append (butlast r) p)
+                    r)
+                (append r p)))
+          [(head ps)]
+          (tail ps)))
+
+(define (sort-by-angle points)
+  (let (p0 (head points)
+        ps (map (lambda (p) {"point" p "angle" (polar-angle p0 p)})
+                (tail points)))
+    (cons p0
+          (map (lambda (p) (p "point"))
+               (remove-dup-angles p0 (sort-by-key "angle" ps))))))
+
+(define (sort-by-x points)
+  (let (ps (map (lambda (p) {"x" (p 0) "p" p}) points))
+    (map (lambda (x) (x "p")) (sort-by-key "x" ps))))
+
+(define (sort-by-y points)
+  (let (ps (map (lambda (p) {"y" (p 1) "p" p}) points))
+    (map (lambda (x) (x "p")) (sort-by-key "y" ps))))
+
+(define (ccw p1 p2 p3)
+  (- (* (- (p2 0) (p1 0))
+        (- (p3 1) (p1 1)))
+     (* (- (p2 1) (p1 1))
+        (- (p3 0) (p1 0)))))
+
+(define (add-to-hull hull p)
+  (cond (< (count hull) 2) (cons p hull)
+        (positive? (ccw (hull 1) (hull 0) p)) (cons p hull)
+        (add-to-hull (tail hull) p)))
+
+(define (convex-hull points)
+  (let (np (count points)
+        points (sort-by-angle (sort-by-y points)))
+    (iterate (hull [(points 0)] p (tail points))
+      (add-to-hull hull p))))
+
+(define (square x) (* x x))
+
+(define (triangle-area p0 p1 p2)
+  (let (a (dist p0 p2)
+        b (dist p0 p1)
+        c (dist p1 p2)
+        s (/ (+ a b c) 2))
+    (sqrt (* s (- s a) (- s b) (- s c)))))
+
+(define (convex-hull-area points)
+  (let (points (concat [[0 0]] points [[1 0] [1 1]])
+        points (sort-by-x (convex-hull points))
+        pl (last points))
+    (loop (r 0 p (butlast points))
+      (if (< (count p) 2)
+          r
+          (recur (+ r (triangle-area (p 0) (p 1) pl))
+                 (tail p))))))
+
+(define (get-sum fs f) ((find-field fs f) ["summary" "sum"]))
+
+(define (tp-rate tp fn)
+  (let (tp+fn (+ tp fn)) (if (positive? tp+fn) (/ tp tp+fn) 1)))
+
+(define (fp-rate fp tn)
+  (let (fp+tn (+ fp tn)) (if (positive? fp+tn) (/ fp fp+tn) 1)))
+
+(define (auc tp fn fp tn)
+  (let (tpr (tp-rate tp fn)
+        fpr (fp-rate fp tn)
+        len-a (sqrt 2)
+        len-b (sqrt (+ (* tpr tpr) (* fpr fpr)))
+        len-c (sqrt (+ (* (- 1 tpr) (- 1 tpr)) (* (- 1 fpr) (- 1 fpr))))
+        half-p (/ (+ len-a len-b len-c) 2)
+        area (sqrt (* half-p
+                      (- half-p len-a)
+                      (- half-p len-b)
+                      (- half-p len-c))))
+    (cond (= tpr fpr) 0.5
+          (> tpr fpr) (+ 0.5 area)
+          (- 0.5 area))))
+
+(define (accuracy tp fn fp tn)
+  (let (p (+ tp tn fp fn)) (if (zero? p) 0 (/ (+ tp tn) p))))
+
+(define (precision tp fp)
+  (let (p (+ tp fp)) (if (zero? p) 0 (/ tp p))))
+
+(define (recall tp fn)
+  (let (p (+ tp fn)) (if (zero? p) 0 (/ tp p))))
+
+(define (f-measure p r)
+  (let (q (+ p r)) (if (zero? q) 0 (/ (* 2 p r) (+ p r)))))
+
+(define (phi tp fn fp tn)
+  (let (tpn (* tp tn)
+        fpn (* fp fn))
+    (if (and (zero? tpn) (zero? fpn))
+        0
+        (let (ds [(sqrt (+ tp fp)) (sqrt (+ tp fn))
+                  (sqrt (+ tn fp)) (sqrt (+ tn fn))]
+              a (reduce / tpn ds)
+              b (reduce / fpn ds))
+          (+ a b)))))
+
+(define (fetch-ev pos ev-id th)
+  (let (ev ((fetch (wait ev-id)) "result")
+        [cl0 cl1] (ev "class_names")
+        cm (ev ["model" "confusion_matrix"])
+        [tp fn fp tn] (if (= cl0 pos)
+                          [(cm [0 0]) (cm [0 1]) (cm [1 0]) (cm [1 1])]
+                          [(cm [1 1]) (cm [1 0]) (cm [0 1])(cm [0 0])])
+        prec (precision tp fp)
+        rec (recall tp fn))
+    {"id" ev-id
+     "tp" tp
+     "fn" fn
+     "fp" fp
+     "tn" tn
+     "tpr" (tp-rate tp fn)
+     "fpr" (fp-rate fp tn)
+     "auc" (min (auc tp fn fp tn) 1.0)
+     "accuracy" (accuracy tp fn fp tn)
+     "precision" prec
+     "recall" rec
+     "f-measure" (f-measure prec rec)
+     "phi" (phi tp fn fp fn)
+     "threshold" th}))
+
+(define (evaluation-points evs)
+  (map (lambda (e) [(e "fpr") (e "tpr")]) evs))
+
+(define (make-evaluations dataset-id model-id from to step pos neg)
+  (when (< to from)
+    (raise "Invalid threshold bounds (end greater than begin)"))
+  (when (not (positive? step))
+    (raise "Invalid threshold step: must be positive"))
+  (let (thresholds (loop (th from ths [])
+                     (if (> th to)
+                         ths
+                         (recur (/ (round (* 1000 (+ th step))) 1000)
+                                (append ths th))))
+        ev-ids (for (th thresholds)
+                 (create-evaluation dataset-id
+                                    model-id
+                                    {"confidence_threshold" th
+                                     "positive_class" pos
+                                     "negative_class" neg})))
+    (map (lambda (ev-id th) (fetch-ev pos ev-id th)) ev-ids thresholds)))
+
+(define evaluations (make-evaluations dataset
+                                      model
+                                      threshold-begin
+                                      threshold-end
+                                      threshold-step
+                                      positive-class
+                                      negative-class))
+
+(define total-auc (min (convex-hull-area (evaluation-points evaluations)) 1.0))
