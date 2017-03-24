@@ -49,6 +49,11 @@
       "name": "evaluations",
       "type": "list",
       "description": "A list of the resulting evaluation data"
+    },
+    {
+      "name": "total-auc",
+      "type": "mumber",
+      "description": "Integrated AUC over individual evaluations"
     }
   ]
 }
