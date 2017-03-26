@@ -1,6 +1,6 @@
 (define (polar-angle p q)
   (cond (= p q) 0
-        (= (p 0) (q 0)) (asin 1)
+        (zero? (- (p 0) (q 0))) (asin 1)
         (atan (/ (- (q 1) (p 1)) (- (q 0) (p 0))))))
 
 (define (dist p q)
@@ -142,28 +142,22 @@
            "phi" (phi tp fn fp fn)
            "threshold" th)))
 
-(define (evaluate-thresholds dataset-id model-id label from to step)
+(define (evaluate-thresholds ds-id p-label label from to step)
   (when (< to from)
     (raise "Invalid threshold bounds (end greater than begin)"))
   (when (not (positive? step))
     (raise "Invalid threshold step: must be positive"))
-  (let (p-label (str "predicted_" label)
-        bp-id (create-batchprediction model-id dataset-id
-                                      {"output_dataset" true
-                                       "all_fields" true
-                                       "prediction_name" p-label})
-        ds-id ((fetch (wait bp-id)) "output_dataset_resource"))
-    (loop (th from evs [])
-      (if (> th to)
-          evs
-          (recur (/ (round (* 1000 (+ th step))) 1000)
-                 (append evs (evaluate-threshold ds-id p-label label th)))))))
+  (loop (th from evs [])
+    (if (> th to)
+        evs
+        (recur (/ (round (* 1000 (+ th step))) 1000)
+               (append evs (evaluate-threshold ds-id p-label label th))))))
 
 (define (evaluation-points evs)
   (map (lambda (e) [(e "fpr") (e "tpr")]) evs))
 
 (define evaluations (evaluate-thresholds dataset
-                                         model
+                                         predicted-field
                                          label-field
                                          threshold-begin
                                          threshold-end

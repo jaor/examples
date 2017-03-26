@@ -1,21 +1,20 @@
 {
-  "name": "Threshold evaluations",
+  "name": "Threshold evaluations for regression",
   "description": "Evaluations for 0-1 objectives based on thresholds",
   "kind": "script",
   "source_code": "script.whizzml",
   "inputs": [
     {
-      "description": "The test dataset with the label field",
+      "description": "The dataset with the label and predicted fields",
       "name": "dataset",
       "type": "dataset-id"
     },
     {
-      "description": "The model making predictions for a numeric between 0 and 1",
-      "name": "model",
-      "type": "model-id"
+      "description": "Name or identifier of the predicted field",
+      "name": "predicted-field",
+      "type": "string"
     },
     {
-      "default": "",
       "description": "Name or identifier of the label field",
       "name": "label-field",
       "type": "string"
