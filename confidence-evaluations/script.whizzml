@@ -115,7 +115,7 @@
               b (reduce / fpn ds))
           (+ a b)))))
 
-(define (fetch-ev pos ev-id th)
+(define (fetch-ev pos ev-id th th-cl)
   (let (ev ((fetch (wait ev-id)) "result")
         [cl0 cl1] (ev "class_names")
         cm (ev ["model" "confusion_matrix"])
@@ -135,7 +135,7 @@
      "accuracy" (accuracy tp fn fp tn)
      "precision" prec
      "recall" rec
-     "positive-class" pos
+     "threshold-class" th-cl
      "f-measure" (f-measure prec rec)
      "phi" (phi tp fn fp fn)
      "threshold" th}))
@@ -143,7 +143,9 @@
 (define (evaluation-points evs)
   (map (lambda (e) [(e "fpr") (e "tpr")]) evs))
 
-(define (make-evaluations dataset-id model-id from to step pos neg)
+(define (prec x) (/ (round (* 1000 x)) 1000))
+
+(define (make-evaluations dataset-id model-id from to step pos neg ev-pos)
   (when (< to from)
     (raise "Invalid threshold bounds (end greater than begin)"))
   (when (not (positive? step))
@@ -151,15 +153,14 @@
   (let (thresholds (loop (th from ths [])
                      (if (> th to)
                          ths
-                         (recur (/ (round (* 1000 (+ th step))) 1000)
-                                (append ths th))))
+                         (recur (prec (+ th step)) (append ths th))))
         ev-ids (for (th thresholds)
                  (create-evaluation dataset-id
                                     model-id
                                     {"confidence_threshold" th
                                      "positive_class" pos
                                      "negative_class" neg})))
-    (map (lambda (ev-id th) (fetch-ev pos ev-id th)) ev-ids thresholds)))
+    (map (lambda (ev-id th) (fetch-ev ev-pos ev-id th pos)) ev-ids thresholds)))
 
 
 (define positive-evaluations (make-evaluations dataset
@@ -168,7 +169,8 @@
                                                threshold-end
                                                threshold-step
                                                positive-class
-                                               negative-class))
+                                               negative-class
+                                               positive-class))
 
 
 (define negative-evaluations (make-evaluations dataset
@@ -177,6 +179,7 @@
                                                threshold-end
                                                threshold-step
                                                negative-class
+                                               positive-class
                                                positive-class))
 
 (define evaluations (concat positive-evaluations negative-evaluations))
