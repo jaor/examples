@@ -51,7 +51,7 @@
     },
     {
       "name": "total-auc",
-      "type": "mumber",
+      "type": "number",
       "description": "Integrated AUC over individual evaluations"
     }
   ]
